@@ -6,6 +6,7 @@ import (
 	"server-article/model"
 	s "server-article/service"
 	"server-article/utils"
+	"time"
 
 	goValidator "github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -75,10 +76,10 @@ func SignUp(c *fiber.Ctx) error {
 	db.Save(&request)
 
 	// ? send email
-	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
+	// clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
 	var firstname = u.Username
 	emailData := s.EmailData{
-		URL:       clientOrigin + "/verifyemail/" + code,
+		URL:       "http://localhost:8000/v1/guest" + "/verifyemail/" + code,
 		FirstName: firstname,
 		Subject:   "your account verification code",
 	}
@@ -120,6 +121,11 @@ func SignIn(c *fiber.Ctx) error {
 		return utils.ResObject(c, fiber.StatusBadRequest, "email account not exist", nil)
 	}
 
+	// check if email is verified
+	if !user.Verified_email {
+		return utils.ResObject(c, fiber.StatusBadRequest, "email account not verified, check your email for verification", nil)
+	}
+
 	// compare pass
 	isValidPass := utils.VerifyPass([]byte(user.Password), []byte(u.Password))
 	if !isValidPass {
@@ -141,7 +147,33 @@ func SignIn(c *fiber.Ctx) error {
 		return utils.ResObject(c, fiber.StatusBadRequest, "sorry cannot create access token", nil)
 	}
 
+	// set cookie
+	cookie := new(fiber.Cookie)
+	cookie.Name = "access_token"
+	cookie.Value = token
+	cookie.Expires = time.Now().Add(time.Hour * 24)
+	c.Cookie(cookie)
+
 	return utils.ResObject(c, fiber.StatusOK, "success sign in", fiber.Map{
 		"access_token": token,
 	})
+}
+
+func VerifyEmail(c *fiber.Ctx) error {
+	code := c.Params("verification_code")
+	verification_code := utils.Encode(code)
+	var updatedUser model.User
+	result := db.First(&updatedUser, "verification_code = ?", verification_code)
+	if result.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "verification code not found", nil)
+	}
+
+	// update user
+	updatedUser.Verification_code = ""
+	updatedUser.Verified_email = true
+	db.Save(&updatedUser)
+
+	utils.ResObject(c, fiber.StatusOK, "success account is verified, enjoy your article", nil)
+	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
+	return c.Redirect(clientOrigin)
 }
