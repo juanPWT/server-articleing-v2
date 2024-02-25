@@ -22,6 +22,7 @@ var myValidation = &s.XValidator{
 	Validator: validate,
 }
 
+// auth
 func SignUp(c *fiber.Ctx) error {
 	//body req
 	u := new(model.UserSignUp)
@@ -175,5 +176,132 @@ func VerifyEmail(c *fiber.Ctx) error {
 
 	utils.ResObject(c, fiber.StatusOK, "success account is verified, enjoy your article", nil)
 	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
-	return c.Redirect(clientOrigin)
+	return c.Redirect(clientOrigin + "auth")
+}
+
+// forgot password
+func ForgotPassword(c *fiber.Ctx) error {
+	//body req
+	u := new(model.UserResetPasswordInput)
+
+	if err := c.BodyParser(u); err != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse request body", nil)
+	}
+
+	//validate req
+	if errs := myValidation.Validate(u); len(errs) > 0 && errs[0].Error {
+		errMsgs := make([]string, 0)
+
+		for _, err := range errs {
+			errMsgs = append(errMsgs, fmt.Sprintf(
+				"[%s]: '%v' | Needs to be '%s'",
+				err.FailedField,
+				err.Value,
+				err.Tag,
+			))
+		}
+
+		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errMsgs)
+	}
+
+	// find user
+	var user model.User
+	err := db.Where("email = ?", u.Email).First(&user)
+	if err.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "email account not exist", nil)
+	}
+
+	// generate reset password code
+	code := randstr.String(5)
+	encodeCode := utils.Encode(code)
+
+	expired := time.Now().Add(time.Hour * 24)
+
+	// save reset password code
+	resetPass := &model.Reset_password{
+		User_id: user.ID,
+		Code:    encodeCode,
+		Expired: expired,
+	}
+
+	errCreate := db.Create(&resetPass)
+	if errCreate.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot create reset password code", nil)
+	}
+
+	// ? send email
+	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
+	emailData := s.EmailDataResetPassword{
+		URL:     clientOrigin,
+		Code:    code,
+		Subject: "reset password code",
+	}
+
+	s.SendEmailResetPassword(&user, &emailData)
+	message := "success send your code reset password, please check your email"
+	return utils.ResObject(c, fiber.StatusOK, message, u)
+}
+
+func ForgotResetPassword(c *fiber.Ctx) error {
+	// params
+	email := c.Query("email")
+	code := c.Query("code")
+	if email == "" && code == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "email required", nil)
+	}
+
+	//body req
+	u := new(model.ForgotResetPasswordInput)
+
+	if errBody := c.BodyParser(u); errBody != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse request body", nil)
+	}
+
+	//validate req
+	if errs := myValidation.Validate(u); len(errs) > 0 && errs[0].Error {
+		errMsgs := make([]string, 0)
+
+		for _, err := range errs {
+			errMsgs = append(errMsgs, fmt.Sprintf(
+				"[%s]: '%v' | Needs to be '%s'",
+				err.FailedField,
+				err.Value,
+				err.Tag,
+			))
+		}
+
+		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errMsgs)
+	}
+
+	// encode code
+	encodeCode := utils.Encode(code)
+
+	// find user
+	var user model.User
+	err := db.Where("email = ?", email).First(&user)
+	if err.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "email account not exist", nil)
+	}
+
+	// find code
+	var resetPass model.Reset_password
+	errCode := db.Where("user_id = ? AND code = ?", user.ID, encodeCode).First(&resetPass)
+	if errCode.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "code not found", nil)
+	}
+
+	// check if code is expired
+	now := time.Now()
+	if now.After(resetPass.Expired) {
+		return utils.ResObject(c, fiber.StatusBadRequest, "code was expired", nil)
+	}
+
+	//delete code
+	db.Delete(&resetPass)
+
+	//update password
+	user.Password = utils.HashPass([]byte(u.NewPassword))
+	db.Save(&user)
+
+	return utils.ResObject(c, fiber.StatusOK, "success reset password", nil)
 }

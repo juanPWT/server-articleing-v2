@@ -11,4 +11,6 @@ func GuestRoute(app *fiber.App) {
 	g.Post("/signup", controller.SignUp)
 	g.Post("/signin", controller.SignIn)
 	g.Get("verifyemail/:verification_code", controller.VerifyEmail)
+	g.Post("/forgotpassword", controller.ForgotPassword)
+	g.Post("/forgotresetpassword", controller.ForgotResetPassword)
 }

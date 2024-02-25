@@ -14,6 +14,15 @@ type User struct {
 	Updated_at        time.Time `json:"updated_at" gorm:"type:datetime;default:now();autoUpdateTime"`
 }
 
+type Reset_password struct {
+	ID        int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	User_id   int       `json:"user_id" gorm:"not null"`
+	Code      string    `json:"code" gorm:"type:varchar(255);not null"`
+	Expired   time.Time `json:"expired" gorm:"type:datetime;not null"`
+	CreatedAt time.Time `json:"created_at" gorm:"type:datetime;default:now();autoCreateTime"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"type:datetime;default:now();autoUpdateTime"`
+}
+
 type UserSignUp struct {
 	Username        string `json:"username" validate:"required,min=3,max=50"`
 	Email           string `json:"email" validate:"required,email"`
@@ -24,4 +33,12 @@ type UserSignUp struct {
 type UserSignIn struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
+}
+
+type UserResetPasswordInput struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type ForgotResetPasswordInput struct {
+	NewPassword string `json:"new_password" validate:"required"`
 }
