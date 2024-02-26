@@ -179,6 +179,17 @@ func VerifyEmail(c *fiber.Ctx) error {
 	return c.Redirect(clientOrigin + "auth")
 }
 
+func Logout(c *fiber.Ctx) error {
+	// delete cookie
+	cookie := new(fiber.Cookie)
+	cookie.Name = "access_token"
+	cookie.Value = ""
+	cookie.Expires = time.Now().Add(-(time.Hour * 2))
+	c.Cookie(cookie)
+
+	return utils.ResObject(c, fiber.StatusOK, "success logout, thank you or your contribution", nil)
+}
+
 // forgot password
 func ForgotPassword(c *fiber.Ctx) error {
 	//body req
@@ -304,4 +315,30 @@ func ForgotResetPassword(c *fiber.Ctx) error {
 	db.Save(&user)
 
 	return utils.ResObject(c, fiber.StatusOK, "success reset password", nil)
+}
+
+// operatioal user
+func GetUser(c *fiber.Ctx) error {
+	// get user id
+	token := c.Cookies("access_token")
+
+	if token == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "user session was exipired or logout", nil)
+	}
+
+	// decode token
+	claims, err := s.DecodeToken(token)
+	if err != nil {
+		return utils.ResObject(c, fiber.StatusUnauthorized, "invalid token", nil)
+	}
+
+	// get user
+	var user model.User
+	errUser := db.First(&user, "id = ?", claims["uid"].(float64))
+
+	if errUser.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "user not found", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success get user"+claims["username"].(string), user)
 }

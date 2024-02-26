@@ -10,8 +10,8 @@ type User struct {
 	Verified_email    bool      `json:"verified_email" gorm:"default:false"`
 	Password          string    `json:"password" gorm:"not null"`
 	Image             string    `json:"image" gorm:"type:text;default:'https://placehold.co/400x400/png'"`
-	Created_at        time.Time `json:"created_at" gorm:"type:datetime;default:now();autoCreateTime"`
-	Updated_at        time.Time `json:"updated_at" gorm:"type:datetime;default:now();autoUpdateTime"`
+	Created_at        time.Time `json:"created_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoCreateTime:milli"`
+	Updated_at        time.Time `json:"updated_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoUpdateTime:milli"`
 }
 
 type Reset_password struct {
@@ -19,8 +19,8 @@ type Reset_password struct {
 	User_id   int       `json:"user_id" gorm:"not null"`
 	Code      string    `json:"code" gorm:"type:varchar(255);not null"`
 	Expired   time.Time `json:"expired" gorm:"type:datetime;not null"`
-	CreatedAt time.Time `json:"created_at" gorm:"type:datetime;default:now();autoCreateTime"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"type:datetime;default:now();autoUpdateTime"`
+	CreatedAt time.Time `json:"created_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoCreateTime:milli"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoUpdateTime:milli"`
 }
 
 type UserSignUp struct {

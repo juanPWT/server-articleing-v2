@@ -12,3 +12,17 @@ func CreateToken(claims jwt.MapClaims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(utils.GetEnv("SECRET_TOKEN_JWT")))
 }
+
+func DecodeToken(t string) (jwt.MapClaims, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(t, claims, func(t *jwt.Token) (interface{}, error) {
+		return []byte(utils.GetEnv("SECRET_TOKEN_JWT")), nil
+	})
+
+	if err != nil && !token.Valid {
+		return nil, err
+	}
+
+	return claims, nil
+
+}
