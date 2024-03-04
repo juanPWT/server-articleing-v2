@@ -12,6 +12,8 @@ type User struct {
 	Image             string    `json:"image" gorm:"type:text;default:'https://placehold.co/400x400/png'"`
 	Created_at        time.Time `json:"created_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoCreateTime:milli"`
 	Updated_at        time.Time `json:"updated_at" gorm:"type:datetime;default:CURRENT_TIMESTAMP();autoUpdateTime:milli"`
+
+	Article []Article
 }
 
 type Reset_password struct {

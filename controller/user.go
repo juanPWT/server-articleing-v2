@@ -153,6 +153,8 @@ func SignIn(c *fiber.Ctx) error {
 	cookie.Name = "access_token"
 	cookie.Value = token
 	cookie.Expires = time.Now().Add(time.Hour * 24)
+	cookie.HTTPOnly = false
+
 	c.Cookie(cookie)
 
 	return utils.ResObject(c, fiber.StatusOK, "success sign in", fiber.Map{
@@ -174,9 +176,8 @@ func VerifyEmail(c *fiber.Ctx) error {
 	updatedUser.Verified_email = true
 	db.Save(&updatedUser)
 
-	utils.ResObject(c, fiber.StatusOK, "success account is verified, enjoy your article", nil)
 	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
-	return c.Redirect(clientOrigin + "auth")
+	return c.Redirect(clientOrigin + "/auth/signin")
 }
 
 func Logout(c *fiber.Ctx) error {
@@ -243,14 +244,16 @@ func ForgotPassword(c *fiber.Ctx) error {
 	// ? send email
 	clientOrigin := utils.GetEnv("CLIENT_ORIGIN")
 	emailData := s.EmailDataResetPassword{
-		URL:     clientOrigin,
+		URL:     clientOrigin + "/auth/" + "resetpassword?email=" + user.Email,
 		Code:    code,
 		Subject: "reset password code",
 	}
 
 	s.SendEmailResetPassword(&user, &emailData)
 	message := "success send your code reset password, please check your email"
-	return utils.ResObject(c, fiber.StatusOK, message, u)
+	return utils.ResObject(c, fiber.StatusOK, message, fiber.Map{
+		"email": user.Email,
+	})
 }
 
 func ForgotResetPassword(c *fiber.Ctx) error {
@@ -258,7 +261,7 @@ func ForgotResetPassword(c *fiber.Ctx) error {
 	email := c.Query("email")
 	code := c.Query("code")
 	if email == "" && code == "" {
-		return utils.ResObject(c, fiber.StatusBadRequest, "email required", nil)
+		return utils.ResObject(c, fiber.StatusBadRequest, "email code required", nil)
 	}
 
 	//body req
@@ -319,8 +322,9 @@ func ForgotResetPassword(c *fiber.Ctx) error {
 
 // operatioal user
 func GetUser(c *fiber.Ctx) error {
+
 	// get user id
-	token := c.Cookies("access_token")
+	token := c.Query("token")
 
 	if token == "" {
 		return utils.ResObject(c, fiber.StatusBadRequest, "user session was exipired or logout", nil)
@@ -340,5 +344,5 @@ func GetUser(c *fiber.Ctx) error {
 		return utils.ResObject(c, fiber.StatusBadRequest, "user not found", nil)
 	}
 
-	return utils.ResObject(c, fiber.StatusOK, "success get user"+claims["username"].(string), user)
+	return utils.ResObject(c, fiber.StatusOK, "success get user "+claims["username"].(string), user)
 }

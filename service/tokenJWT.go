@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"server-article/utils"
 	"time"
 
@@ -19,8 +20,12 @@ func DecodeToken(t string) (jwt.MapClaims, error) {
 		return []byte(utils.GetEnv("SECRET_TOKEN_JWT")), nil
 	})
 
-	if err != nil && !token.Valid {
+	if err != nil {
 		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, errors.New("token is invalid")
 	}
 
 	return claims, nil

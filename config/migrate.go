@@ -2,20 +2,19 @@ package config
 
 import (
 	"fmt"
+	"server-article/model"
 
 	"gorm.io/gorm"
 )
 
 var db *gorm.DB = ConnectDB()
 
-func Migrate(i interface{}) {
+func Migrate() {
 
-	db.AutoMigrate(&i)
-
-	err := db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&i)
+	err := db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&model.User{}, &model.Reset_password{}, &model.Category{}, &model.Article{}, &model.Body{})
 	if err != nil {
 		fmt.Printf("? failed migrate to DB: %v\n", err)
 	} else {
-		fmt.Printf("Migrate to DB success\n")
+		fmt.Println("Migrate to DB success")
 	}
 }

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"server-article/config"
 	"server-article/route"
 	s "server-article/service"
 	"server-article/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -22,6 +24,17 @@ func main() {
 			})
 		},
 	})
+
+	// cors
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000/",
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH",
+		AllowHeaders:     "Origin, Content-Type, Accept ,Authorization, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials, Access-Control-Max-Age, Access-Control-Expose-Headers, Access-Control-Request-Headers",
+		AllowCredentials: true,
+	}))
+
+	// migration
+	config.Migrate()
 
 	// route selection
 	route.GuestRoute(app)
