@@ -24,3 +24,20 @@ type Body struct {
 	Content    string  `json:"content" gorm:"type:text;not null"`
 	Article    Article `json:"article" gorm:"foreignKey:Article_id;references:ID"`
 }
+
+type CreteProject struct {
+	User_id      int    `json:"user_id" validate:"required"`
+	Category_id  int    `json:"category_id" validate:"required"`
+	Title        string `json:"title" validate:"required"`
+	Introduction string `json:"introduction" validate:"required"`
+	Thumbnail    string `json:"thumbnail"`
+}
+
+type CreateContent struct {
+	Content string `json:"content" validate:"required"`
+}
+
+type ArticleDetail struct {
+	Article Article `json:"article"`
+	Body    []Body  `json:"body"`
+}
