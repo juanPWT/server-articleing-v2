@@ -91,28 +91,30 @@ func GetProjectByUser(c *fiber.Ctx) error {
 }
 
 func CreateContent(c *fiber.Ctx) error {
-	r := new(model.CreateContent)
+	var r []model.CreateContent
 	article_id := c.Params("article_id")
 
-	if err := c.BodyParser(r); err != nil {
+	if err := c.BodyParser(&r); err != nil {
 		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse input", nil)
 	}
 
 	// valdiate body parser request
-	if errs := myValidation.Validate(r); len(errs) > 0 && errs[0].Error {
-		errsMsgs := make([]string, 0)
+	// for _, req := range r {
+	// 	if errs := myValidation.Validate(&req); len(errs) > 0 && errs[0].Error {
+	// 		errsMsgs := make([]string, 0)
 
-		for _, err := range errs {
-			errsMsgs = append(errsMsgs, fmt.Sprintf(
-				"[%s]: '%v' | Need tobe '%s'",
-				err.FailedField,
-				err.Value,
-				err.Tag,
-			))
-		}
+	// 		for _, err := range errs {
+	// 			errsMsgs = append(errsMsgs, fmt.Sprintf(
+	// 				"[%s]: '%v' | Need tobe '%s'",
+	// 				err.FailedField,
+	// 				err.Value,
+	// 				err.Tag,
+	// 			))
+	// 		}
 
-		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errsMsgs)
-	}
+	// 		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errsMsgs)
+	// 	}
+	// }
 
 	// if article is exist
 	var article model.Article
@@ -121,18 +123,22 @@ func CreateContent(c *fiber.Ctx) error {
 		return utils.ResObject(c, fiber.StatusBadGateway, "article not found", nil)
 	}
 
-	// create content article
-	newContent := &model.Body{
-		Article_id: article.ID,
-		Content:    r.Content,
+	// insert batch content article
+	var newBodys []model.Body
+	for _, req := range r {
+		newBody := model.Body{
+			Article_id: article.ID,
+			Content:    req.Content,
+		}
+		newBodys = append(newBodys, newBody)
 	}
 
-	errCreate := db.Create(&newContent)
-	if errCreate.Error != nil {
-		return utils.ResObject(c, fiber.StatusBadRequest, "cannot create content", nil)
+	// save in db
+	if err := db.Create(&newBodys); err.Error != nil {
+		return utils.ResObject(c, fiber.StatusInternalServerError, "cannot create content", nil)
 	}
 
-	return utils.ResObject(c, fiber.StatusCreated, "success create content", newContent)
+	return utils.ResObject(c, fiber.StatusCreated, "success save content", newBodys)
 }
 
 func PostArticle(c *fiber.Ctx) error {

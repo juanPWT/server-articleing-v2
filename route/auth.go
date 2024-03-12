@@ -18,7 +18,6 @@ func AuthRoute(app *fiber.App) {
 	auth.Get("/user/logout", controller.Logout)
 
 	// article
-	auth.Get("/articles", controller.GetAllArticle)
 	auth.Post("/project", controller.CreateProject)
 	auth.Get("/project/:user_id", controller.GetProjectByUser)
 	auth.Post("/content/:article_id", controller.CreateContent)
@@ -27,6 +26,4 @@ func AuthRoute(app *fiber.App) {
 
 	// category
 	auth.Post("/category", controller.CreateCategory)
-	auth.Get("/categories", controller.GetAllCategory)
-
 }
