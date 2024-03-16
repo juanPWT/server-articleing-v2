@@ -269,3 +269,38 @@ func DeleteContent(c *fiber.Ctx) error {
 
 	return utils.ResObject(c, fiber.StatusOK, "success delete body", nil)
 }
+
+func DeleteFullArticle(c *fiber.Ctx) error {
+	article_id := c.Params("article_id")
+
+	if article_id == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "article id cannot be empty", nil)
+	}
+
+	// if article is exist
+	var article model.Article
+	articleExist := db.Where("id = ?", article_id).First(&article)
+	if articleExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadGateway, "article not found", nil)
+	}
+
+	// delete all body
+	var body []model.Body
+	errGetContent := db.Where("article_id = ?", article_id).Find(&body)
+	if errGetContent.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot get article detail", nil)
+	}
+
+	errDeleteBody := db.Delete(&body)
+	if errDeleteBody.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot delete body", nil)
+	}
+
+	// delete article
+	errDelete := db.Delete(&article)
+	if errDelete.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot delete article", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success delete article", nil)
+}
