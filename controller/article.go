@@ -10,7 +10,7 @@ import (
 
 func GetAllArticle(c *fiber.Ctx) error {
 	article := new([]model.Article)
-	errGet := db.Joins("User").Joins("Category").Find(&article)
+	errGet := db.Where("is_post = ?", true).Joins("User").Joins("Category").Find(&article)
 
 	if errGet.Error != nil {
 		return utils.ResObject(c, fiber.StatusBadRequest, "cannot get article", nil)
@@ -42,14 +42,15 @@ func CreateProject(c *fiber.Ctx) error {
 	}
 
 	// if user is exist
-	userExist := db.Where("id = ?", r.User_id).First(&model.User{})
+	var user model.User
+	userExist := db.Where("id = ?", r.User_id).First(&user)
 	if userExist.RowsAffected == 0 {
 		return utils.ResObject(c, fiber.StatusBadGateway, "user not found", nil)
 	}
 
 	// if category is exist
-	var user model.User
-	categoryExist := db.Where("id = ?", r.Category_id).First(&user)
+	var category model.Category
+	categoryExist := db.Where("id = ?", r.Category_id).First(&category)
 	if categoryExist.RowsAffected == 0 {
 		return utils.ResObject(c, fiber.StatusBadGateway, "category not found", nil)
 	}
@@ -161,13 +162,24 @@ func PostArticle(c *fiber.Ctx) error {
 	}
 
 	// update article
-	article.IsPost = true
-	errUpdate := db.Save(&article)
-	if errUpdate.Error != nil {
-		return utils.ResObject(c, fiber.StatusBadRequest, "cannot update article", nil)
-	}
+	if article.IsPost {
+		article.IsPost = false
+		errUpdate := db.Save(&article)
+		if errUpdate.Error != nil {
+			return utils.ResObject(c, fiber.StatusBadRequest, "cannot update article", nil)
+		}
 
+		return utils.ResObject(c, fiber.StatusOK, "success unpost article", article)
+	} else {
+		article.IsPost = true
+		errUpdate := db.Save(&article)
+		if errUpdate.Error != nil {
+			return utils.ResObject(c, fiber.StatusBadRequest, "cannot update article", nil)
+		}
+
+	}
 	return utils.ResObject(c, fiber.StatusOK, "success post article", article)
+
 }
 
 func GetFullContentDetail(c *fiber.Ctx) error {
@@ -196,5 +208,64 @@ func GetFullContentDetail(c *fiber.Ctx) error {
 	response.Body = body
 
 	return utils.ResObject(c, fiber.StatusOK, "success get article detail", response)
+}
 
+func GetContentForEdit(c *fiber.Ctx) error {
+	article_id := c.Params("article_id")
+	user_id := c.Query("user_id")
+
+	if article_id == "" || user_id == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "article id cannot be empty", nil)
+	}
+
+	// get  article
+	var articleDetail model.Article
+	errGet := db.Where("user_id = ?", user_id).Joins("User").Joins("Category").First(&articleDetail, article_id)
+	if errGet.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot get article detail", nil)
+	}
+
+	// get content article
+	var body []model.Body
+	errGetContent := db.Where("article_id = ?", article_id).Find(&body)
+	if errGetContent.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot get article detail", nil)
+	}
+
+	response := new(model.ArticleDetail)
+	response.Article = articleDetail
+	response.Body = body
+
+	return utils.ResObject(c, fiber.StatusOK, "success get article detail by user", response)
+}
+
+func DeleteContent(c *fiber.Ctx) error {
+	article_id := c.Params("article_id")
+	body_id := c.Query("body_id")
+
+	if article_id == "" && body_id == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "article id and body id cannot be empty", nil)
+	}
+
+	// if article is exist
+	var article model.Article
+	articleExist := db.Where("id = ?", article_id).First(&article)
+	if articleExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadGateway, "article not found", nil)
+	}
+
+	// if body is exist
+	var body model.Body
+	bodyExist := db.Where("id = ?", body_id).First(&body)
+	if bodyExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadGateway, "body not found", nil)
+	}
+
+	// delete body
+	errDelete := db.Delete(&body)
+	if errDelete.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot delete body", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success delete body", nil)
 }

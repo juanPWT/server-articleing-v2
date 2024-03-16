@@ -23,6 +23,8 @@ func AuthRoute(app *fiber.App) {
 	auth.Post("/content/:article_id", controller.CreateContent)
 	auth.Post("/post", controller.PostArticle)
 	auth.Get("/content/:article_id", controller.GetFullContentDetail)
+	auth.Get("/edit/:article_id", controller.GetContentForEdit)
+	auth.Delete("/content/:article_id", controller.DeleteContent)
 
 	// category
 	auth.Post("/category", controller.CreateCategory)
