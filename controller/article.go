@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"server-article/model"
 	"server-article/utils"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 func GetAllArticle(c *fiber.Ctx) error {
@@ -303,4 +305,68 @@ func DeleteFullArticle(c *fiber.Ctx) error {
 	}
 
 	return utils.ResObject(c, fiber.StatusOK, "success delete article", nil)
+}
+
+func EditProject(c *fiber.Ctx) error {
+	article_id := c.Params("article_id")
+	r := new(model.EditProject)
+
+	if err := c.BodyParser(r); err != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse input", nil)
+	}
+
+	// article is exist
+	var article model.Article
+	articleExist := db.Where("id = ?", article_id).First(&article)
+	if articleExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadGateway, "article not found", nil)
+	}
+
+	// update article
+	article.Title = r.Title
+	article.Introduction = r.Introduction
+
+	errUpdate := db.Save(&article)
+	if errUpdate.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot update article", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success update article", article)
+}
+
+func EditThumbnail(c *fiber.Ctx) error {
+	article_id := c.Params("article_id")
+	file, err := c.FormFile("thumbnail")
+	if err != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot get file", nil)
+	}
+
+	// article exist
+	var article model.Article
+	articleExist := db.Where("id = ?", article_id).First(&article)
+	if articleExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadGateway, "article not found", nil)
+	}
+
+	// setting file name
+	uniqueId := uuid.New()
+	fileName := strings.Replace(uniqueId.String(), "-", "", -1)
+	fileExt := strings.Split(file.Filename, ".")[1]
+	image := fmt.Sprintf("%s.%s", fileName, fileExt)
+
+	// save to db
+	path := utils.GetEnv("FILE_PATH")
+	thumbnail := path + "thumbnail/" + image
+	article.Thumbnail = thumbnail
+	errSave := db.Save(&article)
+	if errSave.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot save thumbnail", nil)
+	}
+
+	// save to local
+	if errSaveLoc := c.SaveFile(file, fmt.Sprintf("./public/thumbnail/%s", image)); errSaveLoc != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot save thumbnail", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success save thumbnail", article)
 }

@@ -41,3 +41,8 @@ type ArticleDetail struct {
 	Article Article `json:"article"`
 	Body    []Body  `json:"body"`
 }
+
+type EditProject struct {
+	Title        string `json:"title"`
+	Introduction string `json:"introduction"`
+}

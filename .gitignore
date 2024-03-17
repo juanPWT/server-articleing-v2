@@ -24,3 +24,6 @@ go.sum
 # Ignore any IDE or editor specific files
 .idea/
 .vscode/
+
+# public 
+public/

@@ -33,6 +33,9 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// file
+	app.Static("/public", "./public")
+
 	// migration
 	config.Migrate()
 
