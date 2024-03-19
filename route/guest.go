@@ -18,6 +18,8 @@ func GuestRoute(app *fiber.App) {
 
 	// articles
 	g.Get("/articles", controller.GetAllArticle)
+	g.Get("/articles/category/:category_id", controller.GetArticleByCategory)
+	g.Get("/search", controller.SearchArticle)
 
 	// category
 	g.Get("/categories", controller.GetAllCategory)

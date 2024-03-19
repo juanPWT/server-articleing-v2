@@ -25,16 +25,18 @@ func main() {
 		},
 	})
 
+	// file
+	app.Static("/public", "./public", fiber.Static{
+		Compress: true,
+	})
+
 	// cors
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000/",
+		AllowOrigins:     "http://localhost:3000",
 		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH",
-		AllowHeaders:     "Origin, Content-Type, Accept ,Authorization, X-Requested-With, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Access-Control-Allow-Methods, Access-Control-Allow-Credentials, Access-Control-Max-Age, Access-Control-Expose-Headers, Access-Control-Request-Headers",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization,X-Requested-With,Access-Control-Allow-Origin,Access-Control-Allow-Headers,Access-Control-Allow-Methods,Access-Control-Allow-Credentials,Access-Control-Max-Age,Access-Control-Expose-Headers,Access-Control-Request-Headers,Content-Length,Accept-Language,Accept-Encoding,Connection",
 		AllowCredentials: true,
 	}))
-
-	// file
-	app.Static("/public", "./public")
 
 	// migration
 	config.Migrate()

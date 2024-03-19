@@ -21,6 +21,37 @@ func GetAllArticle(c *fiber.Ctx) error {
 	return utils.ResObject(c, fiber.StatusOK, "success get article", article)
 }
 
+func GetArticleByCategory(c *fiber.Ctx) error {
+	category_id := c.Params("category_id")
+	if category_id == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "category cannot be empty", nil)
+	}
+
+	var article []model.Article
+	errGet := db.Where("is_post = ?", true).Where("category_id = ?", category_id).Joins("User").Joins("Category").Find(&article)
+	if errGet.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadRequest, "zero result search by category", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "success get article by category", article)
+}
+
+func SearchArticle(c *fiber.Ctx) error {
+	search := c.Query("search")
+
+	if search == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "search cannot be empty", nil)
+	}
+
+	var article []model.Article
+	errGet := db.Where("is_post = ?", true).Where("title LIKE ?", "%"+search+"%").Joins("User").Joins("Category").Find(&article)
+	if errGet.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadRequest, "zero result search", nil)
+	}
+
+	return utils.ResObject(c, fiber.StatusOK, "Success search article", article)
+}
+
 func CreateProject(c *fiber.Ctx) error {
 	r := new(model.CreteProject)
 	if err := c.BodyParser(r); err != nil {
