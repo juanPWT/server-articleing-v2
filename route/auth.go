@@ -16,6 +16,8 @@ func AuthRoute(app *fiber.App) {
 	// user
 	auth.Get("/user", controller.GetUser)
 	auth.Get("/user/logout", controller.Logout)
+	auth.Put("/user/:user_id", controller.EditUser)
+	auth.Put("/profile-picture/:user_id", controller.EditProfilePicture)
 
 	// article
 	auth.Post("/project", controller.CreateProject)

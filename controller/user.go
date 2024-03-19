@@ -6,11 +6,13 @@ import (
 	"server-article/model"
 	s "server-article/service"
 	"server-article/utils"
+	"strings"
 	"time"
 
 	goValidator "github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/thanhpk/randstr"
 	"gorm.io/gorm"
 )
@@ -345,4 +347,84 @@ func GetUser(c *fiber.Ctx) error {
 	}
 
 	return utils.ResObject(c, fiber.StatusOK, "success get user "+claims["username"].(string), user)
+}
+
+func EditUser(c *fiber.Ctx) error {
+
+	// get user id
+	user_id := c.Params("user_id")
+	r := new(model.UserUpdateProfile)
+
+	if err := c.BodyParser(r); err != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse request body", nil)
+	}
+
+	// validate body parser request
+	if errs := myValidation.Validate(r); len(errs) > 0 && errs[0].Error {
+		errMsgs := make([]string, 0)
+
+		for _, err := range errs {
+			errMsgs = append(errMsgs, fmt.Sprintf(
+				"[%s]: '%v' | Needs to be '%s'",
+				err.FailedField,
+				err.Value,
+				err.Tag,
+			))
+		}
+
+		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errMsgs)
+	}
+
+	// update
+	var user model.User
+	// if user exist
+	userExist := db.Where("id = ?", user_id).First(&user)
+	if userExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadRequest, "user not found", nil)
+	}
+
+	// update user
+	user.Username = r.Username
+	db.Save(&user)
+
+	return utils.ResObject(c, fiber.StatusOK, "success update user", user)
+}
+
+func EditProfilePicture(c *fiber.Ctx) error {
+	user_id := c.Params("user_id")
+	file, err := c.FormFile("image")
+
+	if user_id == "" {
+		return utils.ResObject(c, fiber.StatusBadRequest, "user id required", nil)
+	}
+
+	if err != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot parse request body", nil)
+	}
+
+	// setting image
+	uniqueId := uuid.New()
+	fileName := strings.Replace(uniqueId.String(), "-", "-", -1)
+	fileExt := strings.Split(file.Filename, ".")[1]
+	imageName := fmt.Sprintf("%s.%s", fileName, fileExt)
+
+	// update
+	var user model.User
+	// if user exist
+	userExist := db.Where("id = ?", user_id).First(&user)
+	if userExist.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusBadRequest, "user not found", nil)
+	}
+
+	// save db
+	path := utils.GetEnv("FILE_PATH")
+	user.Image = path + "user/" + imageName
+	errSave := db.Save(&user)
+	if errSave.Error != nil {
+		return utils.ResObject(c, fiber.StatusBadRequest, "cannot update image", nil)
+	}
+
+	// save file
+	c.SaveFile(file, fmt.Sprintf("./public/user/%s", imageName))
+	return utils.ResObject(c, fiber.StatusOK, "success update image", user)
 }

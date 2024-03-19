@@ -44,3 +44,7 @@ type UserResetPasswordInput struct {
 type ForgotResetPasswordInput struct {
 	NewPassword string `json:"new_password" validate:"required"`
 }
+
+type UserUpdateProfile struct {
+	Username string `json:"username" validate:"required,min=3,max=50"`
+}
