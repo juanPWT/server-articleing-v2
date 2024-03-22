@@ -11,7 +11,7 @@ var db *gorm.DB = ConnectDB()
 
 func Migrate() {
 
-	err := db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&model.User{}, &model.Reset_password{}, &model.Category{}, &model.Article{}, &model.Body{})
+	err := db.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(&model.User{}, &model.Reset_password{}, &model.Category{}, &model.Article{}, &model.Body{}, &model.Comment{})
 	if err != nil {
 		fmt.Printf("? failed migrate to DB: %v\n", err)
 	} else {

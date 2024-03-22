@@ -31,6 +31,10 @@ func AuthRoute(app *fiber.App) {
 	auth.Put("/project/:article_id", controller.EditProject)
 	auth.Put("/project/thumbnail/:article_id", controller.EditThumbnail)
 
+	// comment
+	auth.Post("/comment", controller.CommentArticle)
+	auth.Get("/comment/:article_id", controller.GetCommentByArticle)
+
 	// category
 	auth.Post("/category", controller.CreateCategory)
 }
