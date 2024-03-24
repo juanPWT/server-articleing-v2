@@ -99,6 +99,13 @@ func ReplyComment(c *fiber.Ctx) error {
 		return utils.ResObject(c, fiber.StatusBadRequest, "validation error", errMsgs)
 	}
 
+	// is comment exist
+	var comment model.Comment
+	errComment := db.First(&comment, r.Comment_id)
+	if errComment.RowsAffected == 0 {
+		return utils.ResObject(c, fiber.StatusNotFound, "Comment not found", nil)
+	}
+
 	// save reply
 	var reply model.Reply
 	reply.Comment_id = r.Comment_id
@@ -109,6 +116,10 @@ func ReplyComment(c *fiber.Ctx) error {
 	if errSave.Error != nil {
 		return utils.ResObject(c, fiber.StatusInternalServerError, "Failed save reply", nil)
 	}
+
+	// update replies comment
+	comment.Replies += 1
+	db.Save(&comment)
 
 	return utils.ResObject(c, fiber.StatusOK, "Success save reply", reply)
 }
